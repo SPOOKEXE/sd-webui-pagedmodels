@@ -687,7 +687,7 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
         jscode = (
             "function(){{"
             f"extraNetworksTabSelected('{tabname}', '{tabname}_{page.extra_networks_tabname}_prompts', {str(page.allow_prompt).lower()}, {str(page.allow_negative_prompt).lower()}, '{tabname}_{page.extra_networks_tabname}');"
-            f"applyExtraNetworkPagination('{tabname}_{page.extra_networks_tabname}', 1, 50);"
+            f"applyExtraNetworkPagination('{tabname}_{page.extra_networks_tabname}', 1, {items_per_page});"
             "}}"
         )
         tab.select(fn=None, _js=jscode, inputs=[], outputs=[], show_progress=False)
