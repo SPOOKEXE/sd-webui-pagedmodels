@@ -648,7 +648,6 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
     ui.tabname = tabname
 
     related_tabs = []
-    related_page_selects = {}
 
     items_per_page : int = 100
     def setup_dropdown(tabname, page):
@@ -663,9 +662,8 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
             print(total_model_count)
             page_nums = [ str(v+1) for v in range( ceil( total_model_count / items_per_page ) ) ]
             print(page_nums)
-            return page_dropdown.update(choices=page_nums, value="1")
+            return page_dropdown.update(choices=page_nums, value=value in page_nums and value or page_nums[-1])
         page_dropdown.select( update_pagination_cards, inputs=[page_dropdown], outputs=[page_dropdown] ).then( fn=None, inputs=[page_dropdown], _js="(x) => { console.log('hi cunt:', \"" + str(paginId) + "," + str(items_per_page) + "\", x); applyExtraNetworkPagination(\"" + str(paginId) + "\",x,\"" + str(items_per_page) + "\"); return x; }" )
-        related_page_selects[page.extra_networks_tabname] = page_dropdown
 
     for page in ui.stored_extra_pages:
         with gr.Tab(page.title, elem_id=f"{tabname}_{page.extra_networks_tabname}", elem_classes=["extra-page"]) as tab:
@@ -689,7 +687,7 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
         jscode = (
             "function(){{"
             f"extraNetworksTabSelected('{tabname}', '{tabname}_{page.extra_networks_tabname}_prompts', {str(page.allow_prompt).lower()}, {str(page.allow_negative_prompt).lower()}, '{tabname}_{page.extra_networks_tabname}');"
-            f"applyExtraNetworkFilter('{tabname}_{page.extra_networks_tabname}');"
+            f"applyExtraNetworkPagination('{tabname}_{page.extra_networks_tabname}', 1, 50);"
             "}}"
         )
         tab.select(fn=None, _js=jscode, inputs=[], outputs=[], show_progress=False)
