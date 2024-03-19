@@ -649,7 +649,7 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
 
     related_tabs = []
 
-    items_per_page : int = 100
+    items_per_page : int = 200
     def setup_dropdown(tabname, page):
         nonlocal items_per_page
         page_dropdown = gr.Dropdown(label=f"Page Select {page.extra_networks_tabname}", show_label=False, elem_id=f"{tabname}_page_select_{page.extra_networks_tabname}", choices=["1", "2", "3", "4"], value="1", multiselect=False, tooltip="Page Number", visible=True)
