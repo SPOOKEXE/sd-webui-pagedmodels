@@ -662,7 +662,7 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
             print(total_model_count)
             page_nums = [ str(v+1) for v in range( ceil( total_model_count / items_per_page ) ) ]
             print(page_nums)
-            return page_dropdown.update(choices=page_nums, value=value in page_nums and value or page_nums[-1])
+            return page_dropdown.update(choices=page_nums, value=value in page_nums and value or "1")
         page_dropdown.select( update_pagination_cards, inputs=[page_dropdown], outputs=[page_dropdown] ).then( fn=None, inputs=[page_dropdown], _js="(x) => { console.log('hi cunt:', \"" + str(paginId) + "," + str(items_per_page) + "\", x); applyExtraNetworkPagination(\"" + str(paginId) + "\",x,\"" + str(items_per_page) + "\"); return x; }" )
 
     for page in ui.stored_extra_pages:
