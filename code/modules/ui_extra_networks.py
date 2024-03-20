@@ -694,14 +694,14 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
         page_dropdown = gr.Dropdown(label=f"Page Select {page.extra_networks_tabname}", show_label=False, elem_id=f"{tabname}_page_select_{page.extra_networks_tabname}", choices=["1"], value="1", multiselect=False, tooltip="Page Number", visible=True)
         def update_pagination_cards(value):
             nonlocal page, page_dropdown
-            print(page.extra_networks_tabname, value)
+            # print(page.extra_networks_tabname, value)
             from math import ceil
             total_model_count : int = len(list(page.get_items_raw()))
-            print(total_model_count, page.items_per_page, (total_model_count / page.items_per_page))
+            # print(total_model_count, page.items_per_page, (total_model_count / page.items_per_page))
             page_nums = [ str(v+1) for v in range( ceil( total_model_count / page.items_per_page ) ) ]
-            print(page_nums)
+            # print(page_nums)
             page.page_number = int(value)
-            print(page.page_number)
+            # print(page.page_number)
             return page_dropdown.update(choices=page_nums, value=value in page_nums and value or "1")
         page_dropdown.select(
             update_pagination_cards, inputs=[page_dropdown], outputs=[page_dropdown]
@@ -712,7 +712,7 @@ btn_refresh_internal.dispatchEvent(new Event("click")); }}""" )
 
     for page in ui.stored_extra_pages:
         page.page_number = 1
-        page.items_per_page = 50
+        page.items_per_page = 150
         with gr.Tab(page.title, elem_id=f"{tabname}_{page.extra_networks_tabname}", elem_classes=["extra-page"]) as tab:
             with gr.Column(elem_id=f"{tabname}_{page.extra_networks_tabname}_prompts", elem_classes=["extra-page-prompts"]):
                 setup_dropdown(tabname, page)
