@@ -6,9 +6,8 @@ I made this extension because my web ui freezes for a considerable time period w
 
 ## Installation
 
-1. Copy "extraNetworks.js" from the scripts folder into your **FORGE** webui folder under "javascript" and replace the file.
-2. Copy "ui_extra_networks.py" from the scripts folder into your **FORGE** webui folder under "modules" and replace the file.
-3. Done.
+1. Copy "ui_extra_networks.py" from the scripts folder into your **FORGE** webui folder under "modules" and replace the file.
+2. Done.
 
 ## Usage
 
