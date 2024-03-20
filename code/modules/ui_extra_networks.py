@@ -222,7 +222,7 @@ class ExtraNetworksPage:
                 Can be empty if the item is not meant to be shown.
             If no template is passed: A dictionary containing the generated item's attributes.
         """
-        preview = None#item.get("preview", None)
+        preview = item.get("preview", None)
         style_height = f"height: {shared.opts.extra_networks_card_height}px;" if shared.opts.extra_networks_card_height else ''
         style_width = f"width: {shared.opts.extra_networks_card_width}px;" if shared.opts.extra_networks_card_width else ''
         style_font_size = f"font-size: {shared.opts.extra_networks_card_text_scale*100}%;"
