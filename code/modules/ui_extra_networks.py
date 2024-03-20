@@ -1,5 +1,6 @@
 import functools
 import os.path
+import time
 import urllib.parse
 from pathlib import Path
 from typing import Optional, Union
@@ -152,7 +153,7 @@ def quote_js(s):
     return f'"{s}"'
 
 class ExtraNetworksPage:
-    def __init__(self, title, items_per_page=100):
+    def __init__(self, title):
         self.title = title
         self.name = title.lower()
         # This is the actual name of the extra networks tab (not txt2img/img2img).
@@ -171,10 +172,13 @@ class ExtraNetworksPage:
         self.btn_edit_item_tpl = shared.html("extra-networks-edit-item-button.html")
         #
         self.page_number = 1
-        self.items_per_page = items_per_page
+        self.items_per_page = 50
 
     def refresh(self):
         pass
+
+    def get_items_raw(self):
+        raise NotImplementedError()
 
     def read_user_metadata(self, item, use_cache=True):
         filename = item.get("filename", None)
@@ -218,7 +222,7 @@ class ExtraNetworksPage:
                 Can be empty if the item is not meant to be shown.
             If no template is passed: A dictionary containing the generated item's attributes.
         """
-        preview = item.get("preview", None)
+        preview = None#item.get("preview", None)
         style_height = f"height: {shared.opts.extra_networks_card_height}px;" if shared.opts.extra_networks_card_height else ''
         style_width = f"width: {shared.opts.extra_networks_card_width}px;" if shared.opts.extra_networks_card_width else ''
         style_font_size = f"font-size: {shared.opts.extra_networks_card_text_scale*100}%;"
@@ -487,6 +491,7 @@ class ExtraNetworksPage:
         Returns:
             HTML formatted string.
         """
+        # print("creating cards for a total of: ", len(list(self.items.values())))
         res = ""
         for item in self.items.values():
             res += self.create_item_html(tabname, item, self.card_tpl)
@@ -497,6 +502,7 @@ class ExtraNetworksPage:
 
         return res
 
+    _html_cache = { }
     def create_html(self, tabname):
         """Generates an HTML string for the current pane.
 
@@ -508,12 +514,32 @@ class ExtraNetworksPage:
         Returns:
             HTML formatted string.
         """
+
+        cachekey = f"{tabname}_{self.name}_{str(self.page_number)}"
+        # print(cachekey)
+        if self._html_cache.get(cachekey) != None:
+            print('cache-hit')
+            return self._html_cache[cachekey]
+
         self.lister.reset()
         self.metadata = {}
         i0 = (self.page_number-1) * self.items_per_page
         i1 = self.page_number * self.items_per_page
-        print(i0, i1)
-        self.items = {x["name"]: x for x in list(self.list_items())[i0:i1]}
+        # print(tabname, self.name)
+        # print(i0, i1)
+        t = time.time()
+        raw_items = self.get_items_raw()
+        # print(len(raw_items))
+        new_raws = []
+        for index, name in enumerate(raw_items[i0:i1]):
+            item = self.create_item(name, index)
+            if item is not None:
+                new_raws.append(item)
+        self.items = {x["name"]: x for x in new_raws}
+        # print(time.time() - t)
+
+        # print("up for reading; ", len(list(self.items.keys())))
+
         # Populate the instance metadata for each item.
         for item in self.items.values():
             metadata = item.get("metadata")
@@ -522,6 +548,8 @@ class ExtraNetworksPage:
 
             if "user_metadata" not in item:
                 self.read_user_metadata(item)
+
+        # print('a')
 
         data_sortdir = shared.opts.extra_networks_card_order
         data_sortmode = shared.opts.extra_networks_card_order_field.lower().replace("sort", "").replace(" ", "_").rstrip("_").strip()
@@ -532,7 +560,9 @@ class ExtraNetworksPage:
             tree_view_btn_extra_class = "extra-network-control--enabled"
             tree_view_div_extra_class = ""
 
-        return self.pane_tpl.format(
+        # print('b')
+
+        d = self.pane_tpl.format(
             **{
                 "tabname": tabname,
                 "extra_networks_tabname": self.extra_networks_tabname,
@@ -541,10 +571,15 @@ class ExtraNetworksPage:
                 "data_sortdir": data_sortdir,
                 "tree_view_btn_extra_class": tree_view_btn_extra_class,
                 "tree_view_div_extra_class": tree_view_div_extra_class,
-                "tree_html": self.create_tree_view_html(tabname),
+                "tree_html": "", #self.create_tree_view_html(tabname),
                 "items_html": self.create_card_view_html(tabname),
             }
         )
+
+        # print('set-to-cache')
+        self._html_cache[cachekey] = d
+
+        return d
 
     def create_item(self, name, index=None):
         raise NotImplementedError()
@@ -655,18 +690,15 @@ def create_ui(interface: gr.Blocks, unrelated_tabs, tabname):
 
     related_tabs = []
 
-    items_per_page : int = 50
-    def setup_dropdown(ui, tabname, page : ExtraNetworksPage):
-        nonlocal items_per_page
-        page_dropdown = gr.Dropdown(label=f"Page Select {page.extra_networks_tabname}", show_label=False, elem_id=f"{tabname}_page_select_{page.extra_networks_tabname}", choices=["1", "2", "3", "4"], value="1", multiselect=False, tooltip="Page Number", visible=True)
-        paginId : str = tabname + "_" + page.extra_networks_tabname
+    def setup_dropdown(tabname, page : ExtraNetworksPage):
+        page_dropdown = gr.Dropdown(label=f"Page Select {page.extra_networks_tabname}", show_label=False, elem_id=f"{tabname}_page_select_{page.extra_networks_tabname}", choices=["1"], value="1", multiselect=False, tooltip="Page Number", visible=True)
         def update_pagination_cards(value):
             nonlocal page, page_dropdown
             print(page.extra_networks_tabname, value)
             from math import ceil
-            total_model_count : int = len(list(page.list_items()))
-            print(total_model_count)
-            page_nums = [ str(v+1) for v in range( ceil( total_model_count / items_per_page ) ) ]
+            total_model_count : int = len(list(page.get_items_raw()))
+            print(total_model_count, page.items_per_page, (total_model_count / page.items_per_page))
+            page_nums = [ str(v+1) for v in range( ceil( total_model_count / page.items_per_page ) ) ]
             print(page_nums)
             page.page_number = int(value)
             print(page.page_number)
@@ -680,10 +712,10 @@ btn_refresh_internal.dispatchEvent(new Event("click")); }}""" )
 
     for page in ui.stored_extra_pages:
         page.page_number = 1
-        page.items_per_page = items_per_page
+        page.items_per_page = 50
         with gr.Tab(page.title, elem_id=f"{tabname}_{page.extra_networks_tabname}", elem_classes=["extra-page"]) as tab:
             with gr.Column(elem_id=f"{tabname}_{page.extra_networks_tabname}_prompts", elem_classes=["extra-page-prompts"]):
-                setup_dropdown(ui, tabname, page)
+                setup_dropdown(tabname, page)
             elem_id = f"{tabname}_{page.extra_networks_tabname}_cards_html"
             page_elem = gr.HTML('Loading...', elem_id=elem_id)
             ui.pages.append(page_elem)
@@ -717,7 +749,9 @@ btn_refresh_internal.dispatchEvent(new Event("click")); }}""" )
         button_refresh.click(fn=refresh, inputs=[], outputs=ui.pages).then(fn=lambda: None, _js="function(){ " + f"applyExtraNetworkFilter('{tabname}_{page.extra_networks_tabname}');" + " }")
 
     def create_html():
+        print([pg.name for pg in ui.stored_extra_pages])
         ui.pages_contents = [pg.create_html(ui.tabname) for pg in ui.stored_extra_pages]
+        print('done')
 
     def pages_html():
         if not ui.pages_contents:
