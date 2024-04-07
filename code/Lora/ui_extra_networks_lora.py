@@ -1,5 +1,4 @@
 import os
-import time
 
 import network
 import networks
@@ -14,9 +13,7 @@ class ExtraNetworksPageLora(ui_extra_networks.ExtraNetworksPage):
         super().__init__('Lora')
 
     def refresh(self):
-        st = time.time()
         networks.list_available_networks()
-        print( "took ", time.time() - st, " to refresh loras." )
 
     def create_item(self, name, index=None, enable_filter=True):
         lora_on_disk = networks.available_networks.get(name)

@@ -1,6 +1,5 @@
 import functools
 import os.path
-import time
 import urllib.parse
 from pathlib import Path
 from typing import Optional, Union
@@ -10,6 +9,7 @@ from modules import shared, ui_extra_networks_user_metadata, errors, extra_netwo
 from modules.images import read_info_from_image, save_image_with_geninfo
 import gradio as gr
 import json
+import time
 import html
 from fastapi.exceptions import HTTPException
 
@@ -176,9 +176,6 @@ class ExtraNetworksPage:
 
     def refresh(self):
         pass
-
-    def get_items_raw(self):
-        raise NotImplementedError()
 
     def read_user_metadata(self, item, use_cache=True):
         filename = item.get("filename", None)
@@ -491,7 +488,6 @@ class ExtraNetworksPage:
         Returns:
             HTML formatted string.
         """
-        # print("creating cards for a total of: ", len(list(self.items.values())))
         res = ""
         for item in self.items.values():
             res += self.create_item_html(tabname, item, self.card_tpl)
@@ -523,6 +519,7 @@ class ExtraNetworksPage:
 
         self.lister.reset()
         self.metadata = {}
+
         i0 = (self.page_number-1) * self.items_per_page
         i1 = self.page_number * self.items_per_page
         # print(tabname, self.name)
@@ -536,20 +533,6 @@ class ExtraNetworksPage:
             if item is not None:
                 new_raws.append(item)
         self.items = {x["name"]: x for x in new_raws}
-        # print(time.time() - t)
-
-        # print("up for reading; ", len(list(self.items.keys())))
-
-        # Populate the instance metadata for each item.
-        for item in self.items.values():
-            metadata = item.get("metadata")
-            if metadata:
-                self.metadata[item["name"]] = metadata
-
-            if "user_metadata" not in item:
-                self.read_user_metadata(item)
-
-        # print('a')
 
         data_sortdir = shared.opts.extra_networks_card_order
         data_sortmode = shared.opts.extra_networks_card_order_field.lower().replace("sort", "").replace(" ", "_").rstrip("_").strip()
@@ -560,9 +543,7 @@ class ExtraNetworksPage:
             tree_view_btn_extra_class = "extra-network-control--enabled"
             tree_view_div_extra_class = ""
 
-        # print('b')
-
-        d = self.pane_tpl.format(
+        return self.pane_tpl.format(
             **{
                 "tabname": tabname,
                 "extra_networks_tabname": self.extra_networks_tabname,
@@ -571,15 +552,10 @@ class ExtraNetworksPage:
                 "data_sortdir": data_sortdir,
                 "tree_view_btn_extra_class": tree_view_btn_extra_class,
                 "tree_view_div_extra_class": tree_view_div_extra_class,
-                "tree_html": "", #self.create_tree_view_html(tabname),
+                "tree_html": "",#self.create_tree_view_html(tabname),
                 "items_html": self.create_card_view_html(tabname),
             }
         )
-
-        # print('set-to-cache')
-        self._html_cache[cachekey] = d
-
-        return d
 
     def create_item(self, name, index=None):
         raise NotImplementedError()
@@ -711,8 +687,6 @@ var btn_refresh_internal = gradioApp().getElementById("{tabname}_{page.extra_net
 btn_refresh_internal.dispatchEvent(new Event("click")); }}""" )
 
     for page in ui.stored_extra_pages:
-        page.page_number = 1
-        page.items_per_page = 150
         with gr.Tab(page.title, elem_id=f"{tabname}_{page.extra_networks_tabname}", elem_classes=["extra-page"]) as tab:
             with gr.Column(elem_id=f"{tabname}_{page.extra_networks_tabname}_prompts", elem_classes=["extra-page-prompts"]):
                 setup_dropdown(tabname, page)
@@ -734,7 +708,7 @@ btn_refresh_internal.dispatchEvent(new Event("click")); }}""" )
         jscode = (
             "function(){{"
             f"extraNetworksTabSelected('{tabname}', '{tabname}_{page.extra_networks_tabname}_prompts', {str(page.allow_prompt).lower()}, {str(page.allow_negative_prompt).lower()}, '{tabname}_{page.extra_networks_tabname}');"
-            f"applyExtraNetworkSort('{tabname}_{page.extra_networks_tabname}');"
+            f"applyExtraNetworkFilter('{tabname}_{page.extra_networks_tabname}');"
             "}}"
         )
         tab.select(fn=None, _js=jscode, inputs=[], outputs=[], show_progress=False)
@@ -749,9 +723,7 @@ btn_refresh_internal.dispatchEvent(new Event("click")); }}""" )
         button_refresh.click(fn=refresh, inputs=[], outputs=ui.pages).then(fn=lambda: None, _js="function(){ " + f"applyExtraNetworkFilter('{tabname}_{page.extra_networks_tabname}');" + " }")
 
     def create_html():
-        print([pg.name for pg in ui.stored_extra_pages])
         ui.pages_contents = [pg.create_html(ui.tabname) for pg in ui.stored_extra_pages]
-        print('done')
 
     def pages_html():
         if not ui.pages_contents:

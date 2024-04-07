@@ -1,6 +1,5 @@
 import html
 import os
-import time
 
 from modules import shared, ui_extra_networks, sd_models
 from modules.ui_extra_networks_checkpoints_user_metadata import CheckpointUserMetadataEditor
@@ -12,10 +11,11 @@ class ExtraNetworksPageCheckpoints(ui_extra_networks.ExtraNetworksPage):
 
         self.allow_prompt = False
 
+    def get_items_raw(self) -> list:
+        return list(sd_models.checkpoints_list)
+
     def refresh(self):
-        st = time.time()
         shared.refresh_checkpoints()
-        print( "took ", time.time() - st, " to refresh checkpoints." )
 
     def create_item(self, name, index=None, enable_filter=True):
         checkpoint: sd_models.CheckpointInfo = sd_models.checkpoint_aliases.get(name)
@@ -38,9 +38,6 @@ class ExtraNetworksPageCheckpoints(ui_extra_networks.ExtraNetworksPage):
             "metadata": checkpoint.metadata,
             "sort_keys": {'default': index, **self.get_sort_keys(checkpoint.filename)},
         }
-
-    def get_items_raw(self) -> list:
-        return list(sd_models.checkpoints_list)
 
     def list_items(self):
         # instantiate a list to protect against concurrent modification
